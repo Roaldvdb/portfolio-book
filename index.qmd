@@ -2,7 +2,7 @@
 # The book's home page. Edit the title/subtitle/description to introduce
 # yourself and what this portfolio contains.
 title: "My Data Science Portfolio"
-author: "Roald"
+author: "Roald Van den Bergh"
 date: today
 ---
 
