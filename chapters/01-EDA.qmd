@@ -26,8 +26,8 @@ use the one that fits your portal:
 ```{r}
 #| label: download
 #| message: false
-dat <- rdatagouv::dg_pull_dataset("5b84f9ee06e3e71bcf2ffd31")
-head(dat)
+df <- rdatagouv::dg_pull_dataset("5b84f9ee06e3e71bcf2ffd31")
+head(df)
 ```
 
 > **Optionally pin the fetched copy** with `{pins}` so the chapter reads from a
@@ -36,8 +36,8 @@ head(dat)
 ```{r}
 #| label: pinning
 board <- pins::board_folder("pins/", versioned = TRUE)
-pins::pin_write(board, dat, "my-data", type = "csv")
-dat <- pins::pin_read(board, "my-data")
+pins::pin_write(board, df, "my-data", type = "csv")
+df <- pins::pin_read(board, "my-data")
 ```
 
 
@@ -47,20 +47,48 @@ dat <- pins::pin_read(board, "my-data")
 #| label: skim
 #| fig-cap: "A one-line summary of the dataset."
 # The skim() output gives you type, missingness and distributions at a glance.
-skimr::skim(dat)
+skimr::skim(df)
 ```
 
 ```{r}
 #| label: missingness
 #| fig-cap: "Missing values across variables."
-VIM::matrixplot(dat)
+naniar::gg_miss_var(df) +
+  # Shortens labels to 15 characters and appends "..."
+  ggplot2::scale_x_discrete(labels = \(x) stringr::str_trunc(x, width = 40))
 ```
 
 ## Cleaning decisions {#sec-cleaning}
 
-<!-- TODO: document the decisions you made while cleaning the data. What did you
-rename, recode, or drop, and why? A defensible cleaning decision is a feature
-of a good analysis, not an afterthought. -->
+We first start our data cleaning process by renaming the variables names to fit industry standards. We will apply the following:
+
+- Make everything lowercase
+- Replace any dots with underscores
+- Remove any accents (e.g. é -> e)
+
+The `clean_names()` function from the `janitor` package does all of the above in one line.
+
+```{r}
+#| label: cleaning-renaming
+df <- janitor::clean_names(df)
+names(df)[5] # Durée.moyenne.du.trajet
+```
+
+Next, we convert the `date` column from character to `Date` type using the `lubridate` package. Since the values are in `YYYY-MM` format, `ym()` sets the day to the 1st of each month, which lets us use the column for time-based plots and analysis.
+
+```{r}
+#| label: cleaning-types
+df$date <- lubridate::ym(df$date)
+cat(format(df$date[1]), "type:", class(df$date[1]))
+```
+
+Finally, we remove the variables `commentaire_annulations` and `commentaire_retards_au_depart`. These variables contain only `NaN`, and are therefore redundant.
+
+```{r}
+#| label: cleaning-redundancy
+empty_cols <- c("commentaire_annulations", "commentaire_retards_au_depart")
+df <- df |> dplyr::select(-dplyr::all_of(empty_cols))
+```
 
 ## Plotting the story
 
